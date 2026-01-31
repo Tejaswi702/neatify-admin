@@ -1,0 +1,139 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
+import neatifyLogo from "../neatifylogo.png";
+
+function Signup() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleSignup = async () => {
+    setErrorMessage("");
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    const userId = data.user.id;
+
+    const { error: insertError } = await supabase
+      .from("admin_signup")
+      .insert([
+        {
+          id: userId,
+          full_name: fullName,
+          email: email,
+          phone: phone,
+        },
+      ]);
+
+    if (insertError) {
+      setErrorMessage("Signup failed while saving admin details");
+      return;
+    }
+
+    navigate("/dashboard");
+  };
+
+  return (
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        backgroundImage: "url('/Background Image.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+      }}
+    >
+        {/* 🔹 WRAPPER */}
+      <div
+        style={{
+          position: "relative",
+          transform: "translateY(-30px)", // ⬆️ moves logo + card up
+        }}
+      >
+        {/* ✅ LOGO (OUTSIDE CARD) */}
+        <img
+  src={neatifyLogo}
+  alt="Neatify Logo"
+  style={{
+    position: "absolute",
+    top: "-95px",              // ⬆️ move logo further up
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "200px",            // adjust if needed
+    background: "transparent", // ❌ remove white background
+    padding: 0,                // ❌ remove padding
+    borderRadius: 0,           // ❌ remove circle
+    boxShadow: "none",         // ❌ remove shadow
+    zIndex: 10,
+  }}
+/>
+        {/* Signup Card */}
+        <div className="auth-card">
+          <h2 className="auth-title">Admin Signup</h2>
+
+          <input
+            className="auth-input"
+            placeholder="Full Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <input
+            className="auth-input"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          {errorMessage && (
+            <p style={{ color: "red", marginBottom: "10px" }}>
+              {errorMessage}
+            </p>
+          )}
+
+          <button className="auth-button" onClick={handleSignup}>
+            Signup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Signup;
