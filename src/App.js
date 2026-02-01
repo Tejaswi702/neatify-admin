@@ -5,20 +5,18 @@ import Signup from "./components/Signup";
 import Dashboard from "./components/Dashboard";
 import Services from "./components/Services";
 import EditServices from "./components/EditServices";
+import Profile from "./components/Profile";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
 
-        {/* Admin Dashboard */}
         <Route path="/services" element={<Services />} />
-
-        {/* Edit Service */}
         <Route path="/edit-service/:id" element={<EditServices />} />
       </Routes>
     </Router>

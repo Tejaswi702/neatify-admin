@@ -72,7 +72,7 @@
 
 .auth-input {
   width: 100%;
-  height: 44px;
+  height: 42px;
   margin-bottom: 14px;
   padding: 0 14px;
   border-radius: 8px;
@@ -88,7 +88,7 @@
 
 .auth-button {
   width: 100%;
-  height: 44px;
+  height: 42px;
   margin-top: 10px;
   border-radius: 8px;
   border: none;
@@ -96,6 +96,7 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+
 }
 
 .auth-button:hover {
@@ -222,6 +223,12 @@
   display: flex;
   flex-direction: column;
 }
+.service-card-actions {
+  margin-top: auto;              /* push buttons to bottom */
+  display: flex;
+  justify-content: flex-end;     /* move to right */
+  gap: 12px;                     /* space between buttons */
+}
 
 .service-card img {
   width: 100%;
@@ -319,6 +326,7 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  margin-right: 20%;
 }
 
 .allot-btn:hover {
@@ -420,3 +428,37 @@
   font-size: 18px;
   margin-top: 2px;
 }
+.service-filter {
+  margin-left: auto;        /* ✅ key line */
+}
+/* Gap between Services and Add Service tabs */
+.services-header-row > div {
+  display: flex;
+  gap: 40px;   /* adjust if needed: 30px / 40px / 50px */
+}
+/* =================================================
+   ACCOUNT DROPDOWN
+   ================================================= */
+
+.account-dropdown {
+  position: absolute;
+  top: 45px;
+  right: 10%;
+  border-radius: 5px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 100;
+  min-width: 120px;
+}
+
+.account-dropdown div {
+  padding: 5px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+
+
+

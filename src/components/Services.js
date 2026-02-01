@@ -1,50 +1,88 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AddService from "./AddService";
 
-function Services() {
+function Services({ selectedType, onTypeChange }) {
   const [services, setServices] = useState([]);
+  const [serviceTypes, setServiceTypes] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
+
   const navigate = useNavigate();
 
-  const fetchServices = async () => {
-    const { data } = await supabase.from("services").select("*");
+  // ✅ Memoized function (fixes ESLint warning)
+  const fetchServices = useCallback(async () => {
+    let query = supabase.from("services").select("*");
+
+    if (selectedType !== "ALL") {
+      query = query.eq("service_type", selectedType);
+    }
+
+    const { data } = await query;
     setServices(data || []);
+  }, [selectedType]);
+
+  const fetchServiceTypes = async () => {
+    const { data } = await supabase
+      .from("services")
+      .select("service_type");
+
+    const unique = [
+      "ALL",
+      ...new Set((data || []).map((d) => d.service_type)),
+    ];
+
+    setServiceTypes(unique);
   };
 
   useEffect(() => {
     fetchServices();
+  }, [fetchServices]); // ✅ warning fixed
+
+  useEffect(() => {
+    fetchServiceTypes();
   }, []);
 
   const deleteService = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this service?")) return;
-
-    const { error } = await supabase.from("services").delete().eq("id", id);
-
-    if (!error) {
-      setServices((prev) => prev.filter((s) => s.id !== id));
-    }
+    if (!window.confirm("Delete this service?")) return;
+    await supabase.from("services").delete().eq("id", id);
+    fetchServices();
   };
 
   return (
     <div>
       <h2>Services</h2>
 
-      <div className="dashboard-tabs">
-        <button
-          className={activeTab === "list" ? "active" : ""}
-          onClick={() => setActiveTab("list")}
-        >
-          Services
-        </button>
+      <div className="dashboard-tabs services-header-row">
+        <div>
+          <button
+            className={activeTab === "list" ? "active" : ""}
+            onClick={() => setActiveTab("list")}
+          >
+            Services
+          </button>
 
-        <button
-          className={activeTab === "add" ? "active" : ""}
-          onClick={() => setActiveTab("add")}
-        >
-          Add Service
-        </button>
+          <button
+            className={activeTab === "add" ? "active" : ""}
+            onClick={() => setActiveTab("add")}
+          >
+            Add Service
+          </button>
+        </div>
+
+        {activeTab === "list" && (
+          <select
+            className="service-filter"
+            value={selectedType}
+            onChange={(e) => onTypeChange(e.target.value)}
+          >
+            {serviceTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {activeTab === "list" && (
@@ -60,7 +98,7 @@ function Services() {
                 <p className="price">{service.price}</p>
               </div>
 
-              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <div className="service-card-actions">
                 <button
                   className="edit-btn"
                   onClick={() => deleteService(service.id)}
@@ -81,12 +119,7 @@ function Services() {
       )}
 
       {activeTab === "add" && (
-        <AddService
-          onSuccess={() => {
-            setActiveTab("list");
-            fetchServices();
-          }}
-        />
+        <AddService onSuccess={() => setActiveTab("list")} />
       )}
     </div>
   );

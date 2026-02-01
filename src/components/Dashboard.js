@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Services from "./Services";
 import Bookings from "./Bookings";
-
 import neatifyLogo from "../neatifylogo.png";
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState("services");
+  const [serviceType, setServiceType] = useState("ALL");
+  const [showMenu, setShowMenu] = useState(false);
+
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -16,65 +18,55 @@ function Dashboard() {
     navigate("/");
   };
 
+  const handleProfile = () => {
+    navigate("/profile");
+    setShowMenu(false);
+  };
+
   return (
     <div className="dashboard">
-
       {/* ===== TOP HEADER ===== */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          marginBottom: "12px", // ⬅️ reduced
+          marginBottom: "12px",
         }}
       >
         <div />
 
         {/* CENTER LOGO + TITLE */}
         <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px", // ⬅️ reduced gap
-            }}
-          >
-           <img
-  src={neatifyLogo}
-  alt="Neatify Logo"
-  style={{
-    width: "200px",
-    height: "auto",
-    display: "block",
-    margin: "0 auto 4px auto"
-  }}
-/>
-
-
-          </div>
-
-          <p
-            style={{
-              marginTop: "4px", // ⬅️ reduced
-              marginBottom: "0",
-              fontSize: "18px",
-              fontWeight: 600,
-            }}
-          >
+          <img
+            src={neatifyLogo}
+            alt="Neatify Logo"
+            style={{ width: "200px", marginBottom: "4px" }}
+          />
+          <p style={{ fontSize: "18px", fontWeight: 600 }}>
             ADMIN DASHBOARD
           </p>
         </div>
 
-        {/* LOGOUT RIGHT */}
-        <div style={{ textAlign: "right" }}>
-          <button className="allot-btn" onClick={handleLogout} title="Logout">
-            ⏻
+        {/* RIGHT ACCOUNT MENU */}
+        <div style={{ textAlign: "right", position: "relative" }}>
+          <button
+            className="allot-btn"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            👤
           </button>
+
+          {showMenu && (
+            <div className="account-dropdown">
+              <div onClick={handleProfile}>Profile</div>
+              <div onClick={handleLogout}>Logout</div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ===== TABS ===== */}
+      {/* ===== MAIN TABS ===== */}
       <div className="dashboard-tabs" style={{ justifyContent: "center" }}>
         <button
           className={activeTab === "services" ? "active" : ""}
@@ -91,8 +83,14 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* ===== CONTENT ===== */}
-      {activeTab === "services" && <Services />}
+      {/* ===== TAB CONTENT ===== */}
+      {activeTab === "services" && (
+        <Services
+          selectedType={serviceType}
+          onTypeChange={setServiceType}
+        />
+      )}
+
       {activeTab === "bookings" && <Bookings />}
     </div>
   );
