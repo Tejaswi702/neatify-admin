@@ -81,12 +81,7 @@ function MyProfile() {
   return (
     <div
       className="auth-page"
-      style={{
-        backgroundImage: "url('/Background Image.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
+
     >
       <div className="auth-card" style={{ width: "360px" }}>
         <h2 className="auth-title">My Profile</h2>
