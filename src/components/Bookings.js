@@ -6,11 +6,9 @@ function BookingPage() {
   const [staffMap, setStaffMap] = useState({});
   const [activeTab, setActiveTab] = useState("unassigned");
 
-  // Filters
   const [selectedDate, setSelectedDate] = useState("ALL");
   const [selectedTime, setSelectedTime] = useState("ALL");
 
-  // Staff flow
   const [showStaff, setShowStaff] = useState(false);
   const [staffList, setStaffList] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -21,31 +19,17 @@ function BookingPage() {
     fetchBookings();
   }, []);
 
-  // ================= FETCH BOOKINGS =================
+  /* ================= FETCH BOOKINGS ================= */
   const fetchBookings = async () => {
     const { data } = await supabase
       .from("bookings")
-      .select(`
-        id,
-        customer_name,
-        email,
-        phone_number,
-        full_address,
-        booking_date,
-        booking_time,
-        services,
-        total_amount,
-        assigned_staff_email,
-        payment_status,
-        payment_method,
-        created_at
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
     setBookings(data || []);
 
     const emails = data?.map(b => b.assigned_staff_email).filter(Boolean);
-    if (!emails.length) return setStaffMap({});
+    if (!emails?.length) return setStaffMap({});
 
     const { data: staffData } = await supabase
       .from("staff_profile")
@@ -57,7 +41,7 @@ function BookingPage() {
     setStaffMap(map);
   };
 
-  // ================= STAFF =================
+  /* ================= STAFF ================= */
   const fetchStaff = async (booking) => {
     setSelectedBooking(booking);
     setShowStaff(true);
@@ -71,45 +55,84 @@ function BookingPage() {
     setStaffList(data || []);
   };
 
+  /* ================= OTP ================= */
+  const generateOtp = () =>
+    Math.floor(100000 + Math.random() * 900000).toString();
+
   const confirmAssignment = async () => {
     if (!selectedBooking || !selectedStaff) return;
 
-    await supabase
+    let startOtp = generateOtp();
+    let endOtp = generateOtp();
+    while (startOtp === endOtp) endOtp = generateOtp();
+
+    const { error } = await supabase
       .from("bookings")
-      .update({ assigned_staff_email: selectedStaff.email })
+      .update({
+        assigned_staff_email: selectedStaff.email,
+        startotp: startOtp,
+        endotp: endOtp,
+      })
       .eq("id", selectedBooking.id);
 
-    setAssignmentDone(true);
-    fetchBookings();
+    if (!error) {
+      alert("✅ Start OTP and End OTP have been saved in the bookings.");
+      setAssignmentDone(true);
+      fetchBookings();
+    }
   };
 
-  // ================= FILTER LOGIC =================
+  /* ================= SORT HELPERS ================= */
+
+  // Normalize & parse time → AM first, then PM
+  const parseTime = (time) => {
+    if (!time) return { period: "am", minutes: 0 };
+
+    // normalize formats: 3.00pm → 3:00 pm
+    let t = time.toLowerCase().replace(".", ":");
+    if (!t.includes(" ")) {
+      t = t.replace("am", " am").replace("pm", " pm");
+    }
+
+    const [timePart, period] = t.split(" ");
+    let [hours, minutes] = timePart.split(":").map(Number);
+
+    if (hours === 12) hours = 0;
+
+    return {
+      period, // am / pm
+      minutes: hours * 60 + minutes
+    };
+  };
+
+  /* ================= FILTER LOGIC ================= */
   const unassignedBookings = bookings.filter(b => !b.assigned_staff_email);
   const assignedBookings = bookings.filter(b => b.assigned_staff_email);
-
   const visibleBookings =
     activeTab === "unassigned" ? unassignedBookings : assignedBookings;
 
+  // Dates ASC
   const uniqueDates = [
     "ALL",
-    ...Array.from(new Set(bookings.map(b => b.booking_date).filter(Boolean)))
-      .sort((a, b) => new Date(a) - new Date(b))
+    ...Array.from(
+      new Set(bookings.map(b => b.booking_date).filter(Boolean))
+    ).sort((a, b) => new Date(a) - new Date(b))
   ];
 
-  const timeToMinutes = (time) => {
-    const [t, modifier] = time.split(" ");
-    let [hours, minutes] = t.split(":").map(Number);
-
-    if (modifier === "pm" && hours !== 12) hours += 12;
-    if (modifier === "am" && hours === 12) hours = 0;
-
-    return hours * 60 + minutes;
-  };
-
+  // Times → AM first, PM later (both ascending)
   const uniqueTimes = [
     "ALL",
-    ...Array.from(new Set(bookings.map(b => b.booking_time).filter(Boolean)))
-      .sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
+    ...Array.from(
+      new Set(bookings.map(b => b.booking_time).filter(Boolean))
+    ).sort((a, b) => {
+      const ta = parseTime(a);
+      const tb = parseTime(b);
+
+      if (ta.period !== tb.period) {
+        return ta.period === "am" ? -1 : 1;
+      }
+      return ta.minutes - tb.minutes;
+    })
   ];
 
   const filteredBookings = visibleBookings.filter(b =>
@@ -117,14 +140,14 @@ function BookingPage() {
     (selectedTime === "ALL" || b.booking_time === selectedTime)
   );
 
-  // ================= ASSIGN STAFF =================
+  /* ================= ASSIGN STAFF ================= */
   if (showStaff && selectedBooking && selectedStaff) {
     return (
       <div className="dashboard">
         <h2>Assign Staff</h2>
 
-        <div style={{ maxWidth: "600px" }}>
-          <div className="staff-card">
+        <div style={{ display: "flex", justifyContent: "flex-start" }}>
+          <div className="staff-card" style={{ maxWidth: "500px" }}>
             <p><b>Name:</b> {selectedStaff.full_name}</p>
             <p><b>Email:</b> {selectedStaff.email}</p>
             <p><b>Phone:</b> {selectedStaff.phone}</p>
@@ -139,8 +162,7 @@ function BookingPage() {
           </div>
         </div>
 
-        {/* ✅ ONLY CHANGE HERE */}
-        <div className="staff-back-center">
+        <div style={{ textAlign: "center", marginTop: "30px" }}>
           <button
             className="allot-btn"
             onClick={() => {
@@ -156,7 +178,7 @@ function BookingPage() {
     );
   }
 
-  // ================= AVAILABLE STAFF =================
+  /* ================= AVAILABLE STAFF ================= */
   if (showStaff && selectedBooking) {
     return (
       <div className="dashboard">
@@ -169,17 +191,14 @@ function BookingPage() {
               <p><b>Email:</b> {staff.email}</p>
               <p><b>Phone:</b> {staff.phone}</p>
 
-              <button
-                className="allot-btn"
-                onClick={() => setSelectedStaff(staff)}
-              >
+              <button className="allot-btn" onClick={() => setSelectedStaff(staff)}>
                 Assign
               </button>
             </div>
           ))}
         </div>
 
-        <div className="staff-back-center">
+        <div style={{ textAlign: "center", marginTop: "30px" }}>
           <button className="allot-btn" onClick={() => setShowStaff(false)}>
             Back to Bookings
           </button>
@@ -188,17 +207,19 @@ function BookingPage() {
     );
   }
 
-  // ================= BOOKINGS TABLE =================
+  /* ================= BOOKINGS TABLE ================= */
   return (
     <div className="dashboard">
       <h2>No of Bookings</h2>
       <h1>{bookings.length}</h1>
 
-      <div className="dashboard-tabs" style={{ width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
         <div style={{ display: "flex", gap: "30px" }}>
           <span
             className={activeTab === "unassigned" ? "active" : ""}
             onClick={() => setActiveTab("unassigned")}
+            style={{ cursor: "pointer" }}
+
           >
             Unassigned ({unassignedBookings.length})
           </span>
@@ -206,21 +227,27 @@ function BookingPage() {
           <span
             className={activeTab === "assigned" ? "active" : ""}
             onClick={() => setActiveTab("assigned")}
+            style={{ cursor: "pointer" }}
+
           >
             Assigned ({assignedBookings.length})
           </span>
         </div>
 
         <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
-          <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}>
+          <select style={{ cursor: "pointer" }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)}>
             {uniqueDates.map(d => (
-              <option key={d} value={d}>{d === "ALL" ? "Dates" : d}</option>
+              <option key={d} value={d}>
+                {d === "ALL" ? "Dates" : d}
+              </option>
             ))}
           </select>
 
-          <select value={selectedTime} onChange={e => setSelectedTime(e.target.value)}>
+          <select style={{ cursor: "pointer" }}  value={selectedTime} onChange={e => setSelectedTime(e.target.value)}>
             {uniqueTimes.map(t => (
-              <option key={t} value={t}>{t === "ALL" ? "Time" : t}</option>
+              <option key={t} value={t}>
+                {t === "ALL" ? "Time" : t}
+              </option>
             ))}
           </select>
 
@@ -236,53 +263,39 @@ function BookingPage() {
         </div>
       </div>
 
-      <div className="booking-table-wrapper">
-        <table className="booking-table">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th>Service</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Amount</th>
-              <th>Payment Status</th>
-              <th>Payment Method</th>
-              <th>Assigned Staff</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+      <table className="booking-table">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Service</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Assigned Staff</th>
+            <th>Action</th>
+          </tr>
+        </thead>
 
-          <tbody>
-            {filteredBookings.map(b => (
-              <tr key={b.id}>
-                <td>{b.customer_name}</td>
-                <td>{b.phone_number}</td>
-                <td>{b.email}</td>
-                <td>{b.full_address}</td>
-                <td>{b.services?.[0]?.title || "N/A"}</td>
-                <td>{b.booking_date}</td>
-                <td>{b.booking_time}</td>
-                <td>₹{b.total_amount}</td>
-                <td>{b.payment_status || "N/A"}</td>
-                <td>{b.payment_method || "N/A"}</td>
-                <td>
-                  {b.assigned_staff_email
-                    ? `${staffMap[b.assigned_staff_email]} (${b.assigned_staff_email})`
-                    : "Not Assigned"}
-                </td>
-                <td>
-                  <button className="allot-btn" onClick={() => fetchStaff(b)}>
-                    {activeTab === "unassigned" ? "Allot Staff" : "Change Staff"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <tbody>
+          {filteredBookings.map(b => (
+            <tr key={b.id}>
+              <td>{b.customer_name}</td>
+              <td>{b.phone_number}</td>
+              <td>{b.email}</td>
+              <td>{b.services?.[0]?.title || "N/A"}</td>
+              <td>{b.booking_date}</td>
+              <td>{b.booking_time}</td>
+              <td>{b.assigned_staff_email ? staffMap[b.assigned_staff_email] : "Not Assigned"}</td>
+              <td>
+                <button className="allot-btn" onClick={() => fetchStaff(b)}>
+                  {b.assigned_staff_email ? "Change Staff" : "Allot Staff"}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

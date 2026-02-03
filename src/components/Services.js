@@ -58,6 +58,7 @@ function Services({ selectedType, onTypeChange }) {
           <button
             className={activeTab === "list" ? "active" : ""}
             onClick={() => setActiveTab("list")}
+            
           >
             Services
           </button>
@@ -75,6 +76,7 @@ function Services({ selectedType, onTypeChange }) {
             className="service-filter"
             value={selectedType}
             onChange={(e) => onTypeChange(e.target.value)}
+            style={{ cursor: "pointer" }}
           >
             {serviceTypes.map((type) => (
               <option key={type} value={type}>

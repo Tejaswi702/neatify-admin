@@ -49,7 +49,7 @@ function Dashboard() {
         </div>
 
         {/* RIGHT ACCOUNT MENU */}
-        <div style={{ textAlign: "right", position: "relative" }}>
+        <div style={{ textAlign: "right", position: "relative", paddingLeft: "80%" }}>
           <button
             className="allot-btn"
             onClick={() => setShowMenu(!showMenu)}

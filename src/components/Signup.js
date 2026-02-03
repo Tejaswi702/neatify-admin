@@ -47,47 +47,33 @@ function Signup() {
   };
 
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        backgroundImage: "url('/Background Image.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        margin: 0,
-        padding: 0,
-        overflow: "hidden",
-      }}
-    >
-        {/* 🔹 WRAPPER */}
+    <div className="auth-page">
+      {/* 🔹 WRAPPER */}
       <div
         style={{
           position: "relative",
-          transform: "translateY(-30px)", // ⬆️ moves logo + card up
+          transform: "translateY(-30px)",
         }}
       >
-        {/* ✅ LOGO (OUTSIDE CARD) */}
+        {/* ✅ LOGO */}
         <img
-  src={neatifyLogo}
-  alt="Neatify Logo"
-  style={{
-    position: "absolute",
-    top: "-95px",              // ⬆️ move logo further up
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "200px",            // adjust if needed
-    background: "transparent", // ❌ remove white background
-    padding: 0,                // ❌ remove padding
-    borderRadius: 0,           // ❌ remove circle
-    boxShadow: "none",         // ❌ remove shadow
-    zIndex: 10,
-  }}
-/>
-        {/* Signup Card */}
+          src={neatifyLogo}
+          alt="Neatify Logo"
+          style={{
+            position: "absolute",
+            top: "-95px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "200px",
+            background: "transparent",
+            padding: 0,
+            borderRadius: 0,
+            boxShadow: "none",
+            zIndex: 10,
+          }}
+        />
+
+        {/* ✅ SIGNUP CARD */}
         <div className="auth-card">
           <h2 className="auth-title">Admin Signup</h2>
 
@@ -122,9 +108,7 @@ function Signup() {
           />
 
           {errorMessage && (
-            <p style={{ color: "red", marginBottom: "10px" }}>
-              {errorMessage}
-            </p>
+            <p className="auth-error">{errorMessage}</p>
           )}
 
           <button className="auth-button" onClick={handleSignup}>
