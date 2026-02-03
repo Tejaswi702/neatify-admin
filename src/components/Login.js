@@ -20,12 +20,12 @@ function Login() {
     else navigate("/dashboard");
   };
 
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
-    });
-  };
+  //   const handleGoogleLogin = async () => {
+  //   await supabase.auth.signInWithOAuth({
+  //     provider: "google",
+  //     options: { redirectTo: window.location.origin + "/dashboard" },
+  //   });
+  // };
 
   return (
     <div className="auth-page">
@@ -80,7 +80,7 @@ function Login() {
             Login
           </button>
 
-          <button
+          {/* <button
             className="auth-button google-button"
             onClick={handleGoogleLogin}
           >
@@ -89,7 +89,7 @@ function Login() {
               alt="Google"
             />
             Sign in with Google
-          </button>
+          </button> */}
 
           <p className="auth-link" onClick={() => navigate("/signup")}>
             New account? <span>Signup</span>
