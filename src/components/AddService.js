@@ -12,11 +12,15 @@ function AddService({ onSuccess }) {
     description: "",
   });
 
+  const [showAlert, setShowAlert] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const saveService = async () => {
+  // 👉 ONLY open alert, do NOT save yet
+  const saveService = () => {
     const payload = {
       title: formData.title,
       duration: formData.duration,
@@ -29,14 +33,31 @@ function AddService({ onSuccess }) {
         : [],
     };
 
-    const { error } = await supabase.from("services").insert([payload]);
+    setPendingPayload(payload);
+    setShowAlert(true);
+  };
 
-    if (error) {
-      alert("Error adding service");
-      console.error(error);
+  // ❌ X → cancel, do nothing
+  const closeAlertOnly = () => {
+    setShowAlert(false);
+    setPendingPayload(null);
+  };
+
+  // ✅ OK → NOW insert service
+  const confirmAlert = async () => {
+    if (!pendingPayload) return;
+
+    const { error } = await supabase
+      .from("services")
+      .insert([pendingPayload]);
+
+    setShowAlert(false);
+    setPendingPayload(null);
+
+    if (!error) {
+      onSuccess();
     } else {
-      alert("Service added successfully");
-      onSuccess(); // refresh services list
+      console.error(error);
     }
   };
 
@@ -98,6 +119,69 @@ function AddService({ onSuccess }) {
           Save
         </button>
       </div>
+
+      {/* ✅ Custom Confirmation Alert */}
+      {showAlert && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "30px 40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              minWidth: "350px",
+              position: "relative",
+            }}
+          >
+            {/* ❌ Cancel */}
+            <span
+              onClick={closeAlertOnly}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "15px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+              }}
+            >
+              ✕
+            </span>
+
+            <h3>Confirm</h3>
+            <p>Do you want to add this service?</p>
+
+            <button
+              onClick={confirmAlert}
+              style={{
+                marginTop: "15px",
+                padding: "8px 25px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: "#facc15",
+                color: "#000",
+                fontWeight: "600",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

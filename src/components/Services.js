@@ -8,9 +8,11 @@ function Services({ selectedType, onTypeChange }) {
   const [serviceTypes, setServiceTypes] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
 
+  const [showAlert, setShowAlert] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
   const navigate = useNavigate();
 
-  // ✅ Memoized function (fixes ESLint warning)
   const fetchServices = useCallback(async () => {
     let query = supabase.from("services").select("*");
 
@@ -23,9 +25,7 @@ function Services({ selectedType, onTypeChange }) {
   }, [selectedType]);
 
   const fetchServiceTypes = async () => {
-    const { data } = await supabase
-      .from("services")
-      .select("service_type");
+    const { data } = await supabase.from("services").select("service_type");
 
     const unique = [
       "ALL",
@@ -37,16 +37,30 @@ function Services({ selectedType, onTypeChange }) {
 
   useEffect(() => {
     fetchServices();
-  }, [fetchServices]); // ✅ warning fixed
+  }, [fetchServices]);
 
   useEffect(() => {
     fetchServiceTypes();
   }, []);
 
-  const deleteService = async (id) => {
-    if (!window.confirm("Delete this service?")) return;
-    await supabase.from("services").delete().eq("id", id);
+  // show alert only
+  const deleteService = (id) => {
+    setDeleteId(id);
+    setShowAlert(true);
+  };
+
+  // confirm delete
+  const confirmDelete = async () => {
+    await supabase.from("services").delete().eq("id", deleteId);
+    setShowAlert(false);
+    setDeleteId(null);
     fetchServices();
+  };
+
+  // cancel / close alert
+  const closeAlert = () => {
+    setShowAlert(false);
+    setDeleteId(null);
   };
 
   return (
@@ -58,7 +72,6 @@ function Services({ selectedType, onTypeChange }) {
           <button
             className={activeTab === "list" ? "active" : ""}
             onClick={() => setActiveTab("list")}
-            
           >
             Services
           </button>
@@ -122,6 +135,69 @@ function Services({ selectedType, onTypeChange }) {
 
       {activeTab === "add" && (
         <AddService onSuccess={() => setActiveTab("list")} />
+      )}
+
+      {/* ✅ Alert with X close */}
+      {showAlert && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "30px 40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              minWidth: "350px",
+              position: "relative",
+            }}
+          >
+            {/* ❌ Close icon */}
+            <span
+              onClick={closeAlert}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "15px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+              }}
+            >
+              ✕
+            </span>
+
+            <h3>Confirm</h3>
+            <p>Service deleted successfully</p>
+
+            <button
+              onClick={confirmDelete}
+              style={{
+                marginTop: "15px",
+                padding: "8px 25px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: "#facc15",
+                color: "#000",
+                fontWeight: "600",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
