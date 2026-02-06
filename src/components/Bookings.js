@@ -1,11 +1,12 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import Loader from "./Loader";
 
 function BookingPage() {
   const [bookings, setBookings] = useState([]);
   const [staffMap, setStaffMap] = useState({});
   const [activeTab, setActiveTab] = useState("unassigned");
+  const [loading, setLoading] = useState(true);
 
   const [showStaff, setShowStaff] = useState(false);
   const [staffList, setStaffList] = useState([]);
@@ -13,6 +14,10 @@ function BookingPage() {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [assignmentDone, setAssignmentDone] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false);
+  const [showRefundSuccess, setShowRefundSuccess] = useState(false);
+  const [targetRefundId, setTargetRefundId] = useState(null);
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImageUrl, setModalImageUrl] = useState(null);
@@ -26,12 +31,14 @@ function BookingPage() {
   }, []);
 
   const fetchBookings = async () => {
+    setLoading(true);
     const { data } = await supabase
       .from("bookings")
       .select("*")
       .order("created_at", { ascending: false });
 
     setBookings(data || []);
+    setLoading(false);
 
     const emails = data?.map(b => b.assigned_staff_email).filter(Boolean);
     if (!emails?.length) {
@@ -50,22 +57,23 @@ function BookingPage() {
   };
 
   /* ================= REFUND FUNCTION ================= */
-  const markRefunded = async (bookingId) => {
-    const confirmRefund = window.confirm(
-      "Confirm you have completed the refund in Razorpay?"
-    );
-    if (!confirmRefund) return;
+  const markRefunded = (bookingId) => {
+    setTargetRefundId(bookingId);
+    setShowRefundConfirm(true);
+  };
 
+  const handleConfirmRefund = async () => {
     const { error } = await supabase
       .from("bookings")
       .update({
         refund_status: "REFUNDED",
         refund_time: new Date().toISOString(),
       })
-      .eq("id", bookingId);
+      .eq("id", targetRefundId);
 
     if (!error) {
-      alert("Refund marked as completed ✅");
+      setShowRefundConfirm(false);
+      setShowRefundSuccess(true);
       fetchBookings();
     }
   };
@@ -164,10 +172,10 @@ function BookingPage() {
     activeTab === "unassigned"
       ? applyDateTimeFilter(unassignedBookings)
       : activeTab === "assigned"
-      ? applyDateTimeFilter(assignedBookings)
-      : activeTab === "completed"
-      ? applyDateTimeFilter(completedBookings)
-      : applyDateTimeFilter(cancelledBookings);
+        ? applyDateTimeFilter(assignedBookings)
+        : activeTab === "completed"
+          ? applyDateTimeFilter(completedBookings)
+          : applyDateTimeFilter(cancelledBookings);
 
   /* ================= STAFF CONFIRM SCREEN ================= */
   if (showStaff && selectedBooking && selectedStaff) {
@@ -191,8 +199,8 @@ function BookingPage() {
 
         <button className="allot-btn" onClick={() => setShowStaff(false)}
           style={{
-         display: "block",
-         margin: "20px auto 0",
+            display: "block",
+            margin: "20px auto 0",
           }}>
           Back to Bookings
         </button>
@@ -250,28 +258,30 @@ function BookingPage() {
 
         <button className="allot-btn" onClick={() => setShowStaff(false)}
           style={{
-         display: "block",
-         margin: "20px auto 0",
+            display: "block",
+            margin: "20px auto 0",
           }}>
           Back to Bookings
         </button>
-          </div>
-        );
-      }
+      </div>
+    );
+  }
 
   /* ================= BOOKINGS TABLE ================= */
+  if (loading) return <Loader />;
+
   return (
     <div className="dashboard">
       <h2>No of Bookings</h2>
       <h1>{bookings.length}</h1>
 
       {/* Tabs + Filters */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-        <div style={{ display: "flex", gap: "30px" }}>
-          <span onClick={() => setActiveTab("unassigned")}style={{ cursor: "pointer" }}>Unassigned ({unassignedBookings.length})</span>
-          <span onClick={() => setActiveTab("assigned")}style={{ cursor: "pointer" }}>Assigned ({assignedBookings.length})</span>
-          <span onClick={() => setActiveTab("completed")}style={{ cursor: "pointer" }}>Completed ({completedBookings.length})</span>
-          <span onClick={() => setActiveTab("cancelled")}style={{ cursor: "pointer" }}>Cancelled ({cancelledBookings.length})</span>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center" }}>
+        <div className="dashboard-tabs" style={{ margin: 0, gap: "30px" }}>
+          <span className={activeTab === "unassigned" ? "active" : ""} onClick={() => setActiveTab("unassigned")}>Unassigned ({unassignedBookings.length})</span>
+          <span className={activeTab === "assigned" ? "active" : ""} onClick={() => setActiveTab("assigned")}>Assigned ({assignedBookings.length})</span>
+          <span className={activeTab === "completed" ? "active" : ""} onClick={() => setActiveTab("completed")}>Completed ({completedBookings.length})</span>
+          <span className={activeTab === "cancelled" ? "active" : ""} onClick={() => setActiveTab("cancelled")}>Cancelled ({cancelledBookings.length})</span>
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
@@ -342,34 +352,34 @@ function BookingPage() {
         <tbody>
           {activeTab === "completed"
             ? visibleBookings.map(b => (
-                <tr key={b.id}>
-                  <td>{b.customer_name}</td>
-                  <td>{b.services?.[0]?.title}</td>
-                  <td>{b.services?.[0]?.price}</td>
-                  <td>{b.booking_time}</td>
-                  <td>{b.full_address}</td>
-                  <td>{staffMap[b.assigned_staff_email]}</td>
-                  <td>{b.assigned_staff_email}</td>
-                  <td>
-                    {getImageUrl(b.start_photo_url) && (
-                      <button className="allot-btn" onClick={() => {
-                        setModalImageUrl(getImageUrl(b.start_photo_url));
-                        setShowImageModal(true);
-                      }}>View</button>
-                    )}
-                  </td>
-                  <td>
-                    {getImageUrl(b.end_photo_url) && (
-                      <button className="allot-btn" onClick={() => {
-                        setModalImageUrl(getImageUrl(b.end_photo_url));
-                        setShowImageModal(true);
-                      }}>View</button>
-                    )}
-                  </td>
-                </tr>
-              ))
+              <tr key={b.id}>
+                <td>{b.customer_name}</td>
+                <td>{b.services?.[0]?.title}</td>
+                <td>{b.services?.[0]?.price}</td>
+                <td>{b.booking_time}</td>
+                <td>{b.full_address}</td>
+                <td>{staffMap[b.assigned_staff_email]}</td>
+                <td>{b.assigned_staff_email}</td>
+                <td>
+                  {getImageUrl(b.start_photo_url) && (
+                    <button className="allot-btn" onClick={() => {
+                      setModalImageUrl(getImageUrl(b.start_photo_url));
+                      setShowImageModal(true);
+                    }}>View</button>
+                  )}
+                </td>
+                <td>
+                  {getImageUrl(b.end_photo_url) && (
+                    <button className="allot-btn" onClick={() => {
+                      setModalImageUrl(getImageUrl(b.end_photo_url));
+                      setShowImageModal(true);
+                    }}>View</button>
+                  )}
+                </td>
+              </tr>
+            ))
             : activeTab === "cancelled"
-            ? visibleBookings.map(b => (
+              ? visibleBookings.map(b => (
                 <tr key={b.id}>
                   <td>{b.customer_name}</td>
                   <td>{b.email}</td>
@@ -395,7 +405,7 @@ function BookingPage() {
                   </td>
                 </tr>
               ))
-            : visibleBookings.map(b => (
+              : visibleBookings.map(b => (
                 <tr key={b.id}>
                   <td>{b.customer_name}</td>
                   <td>{b.phone_number}</td>
@@ -431,13 +441,145 @@ function BookingPage() {
             padding: "20px",
             borderRadius: "16px",
             zIndex: 9999,
+            textAlign: "center",
           }}>
-            <img src={modalImageUrl} alt="Work" style={{ maxWidth: "300px" }} />
-            <button className="allot-btn" onClick={() => setShowImageModal(false)}>
+            <img src={modalImageUrl} alt="Work" style={{ maxWidth: "300px", display: "block", marginBottom: "15px", borderRadius: "8px" }} />
+            <button
+              className="allot-btn"
+              onClick={() => setShowImageModal(false)}
+              style={{ margin: "0 auto", display: "inline-block" }}
+            >
               OK
             </button>
           </div>
         </>
+      )}
+
+      {/* ✅ REFUND CONFIRM MODAL */}
+      {showRefundConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "30px 40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              minWidth: "350px",
+              position: "relative",
+            }}
+          >
+            <span
+              onClick={() => setShowRefundConfirm(false)}
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "15px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+              }}
+            >
+              ✕
+            </span>
+
+            <h3 style={{ margin: "0 0 10px", fontSize: "20px" }}>Confirm</h3>
+            <p style={{ margin: "0 0 20px", color: "#666" }}>
+              Confirm you have completed the refund in Razorpay?
+            </p>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: "15px" }}>
+              <button
+                onClick={handleConfirmRefund}
+                style={{
+                  padding: "8px 25px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: "#facc15",
+                  color: "#000",
+                  fontWeight: "600",
+                }}
+              >
+                OK
+              </button>
+              <button
+                onClick={() => setShowRefundConfirm(false)}
+                style={{
+                  padding: "8px 25px",
+                  borderRadius: "6px",
+                  border: "1px solid #ddd",
+                  cursor: "pointer",
+                  backgroundColor: "#fff",
+                  color: "#333",
+                  fontWeight: "600",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ REFUND SUCCESS MODAL */}
+      {showRefundSuccess && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "30px 40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              minWidth: "350px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px", fontSize: "20px" }}>Success</h3>
+            <p style={{ margin: "0 0 20px", color: "#666" }}>
+              Refund marked as completed ✅
+            </p>
+
+            <button
+              onClick={() => setShowRefundSuccess(false)}
+              style={{
+                padding: "8px 25px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: "#facc15",
+                color: "#000",
+                fontWeight: "600",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

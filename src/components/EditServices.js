@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../supabase";
+import Loader from "./Loader";
 
 function EditService() {
   const { id } = useParams();
@@ -14,9 +15,11 @@ function EditService() {
   });
 
   const [showAlert, setShowAlert] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchService = async () => {
+      setLoading(true);
       const { data } = await supabase
         .from("services")
         .select("*")
@@ -31,6 +34,7 @@ function EditService() {
           image: data.image,
         });
       }
+      setLoading(false);
     };
 
     fetchService();
@@ -55,6 +59,8 @@ function EditService() {
     setShowAlert(false);
     navigate(-1);
   };
+
+  if (loading) return <Loader />;
 
   return (
     <div className="auth-page services-edit-page">

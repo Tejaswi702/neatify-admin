@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import neatifyLogo from "../neatifylogo.png";
+import Loader from "./Loader";
 
 function Signup() {
   const [fullName, setFullName] = useState("");
@@ -9,10 +10,12 @@ function Signup() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSignup = async () => {
+    setLoading(true);
     setErrorMessage("");
 
     const { data, error } = await supabase.auth.signUp({
@@ -22,6 +25,7 @@ function Signup() {
 
     if (error) {
       setErrorMessage(error.message);
+      setLoading(false);
       return;
     }
 
@@ -40,11 +44,14 @@ function Signup() {
 
     if (insertError) {
       setErrorMessage("Signup failed while saving admin details");
+      setLoading(false);
       return;
     }
 
     navigate("/dashboard");
   };
+
+  if (loading) return <Loader />;
 
   return (
     <div className="auth-page">

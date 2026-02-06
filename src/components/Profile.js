@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import Loader from "./Loader";
 
 function MyProfile() {
   const navigate = useNavigate();
@@ -33,10 +34,10 @@ function MyProfile() {
 
     // Fetch profile data
     const { data: profileData } = await supabase
-  .from("admin_profile")
-  .select("*")
-  .eq("id", user.id)
-  .single();
+      .from("admin_profile")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
     setProfile({
       full_name: profileData?.full_name ?? signupData?.full_name ?? "",
@@ -54,29 +55,29 @@ function MyProfile() {
   }, []);
 
   const handleUpdate = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("admin_profile").upsert({
-    id: user.id,
-    full_name: profile.full_name || null,
-    phone: profile.phone || null,
-    address: profile.address || null,
-    pincode: profile.pincode || null,
-  });
+    const { error } = await supabase.from("admin_profile").upsert({
+      id: user.id,
+      full_name: profile.full_name || null,
+      phone: profile.phone || null,
+      address: profile.address || null,
+      pincode: profile.pincode || null,
+    });
 
-  if (error) {
-    console.error("Update failed:", error.message);
-    alert("Profile update failed");
-    return;
-  }
+    if (error) {
+      console.error("Update failed:", error.message);
+      alert("Profile update failed");
+      return;
+    }
 
-  alert("Profile updated successfully");
-  setIsEdit(false);
-};
+    alert("Profile updated successfully");
+    setIsEdit(false);
+  };
 
-  if (loading) return <p style={{ textAlign: "center" }}>Loading...</p>;
+  if (loading) return <Loader />;
 
   return (
     <div

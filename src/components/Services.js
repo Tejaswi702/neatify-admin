@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import AddService from "./AddService";
+import Loader from "./Loader";
 
 function Services({ selectedType, onTypeChange }) {
   const [services, setServices] = useState([]);
   const [serviceTypes, setServiceTypes] = useState([]);
   const [activeTab, setActiveTab] = useState("list");
+  const [loading, setLoading] = useState(true);
 
   const [showAlert, setShowAlert] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -14,6 +16,7 @@ function Services({ selectedType, onTypeChange }) {
   const navigate = useNavigate();
 
   const fetchServices = useCallback(async () => {
+    setLoading(true);
     let query = supabase.from("services").select("*");
 
     if (selectedType !== "ALL") {
@@ -22,6 +25,7 @@ function Services({ selectedType, onTypeChange }) {
 
     const { data } = await query;
     setServices(data || []);
+    setLoading(false);
   }, [selectedType]);
 
   const fetchServiceTypes = async () => {
@@ -62,6 +66,8 @@ function Services({ selectedType, onTypeChange }) {
     setShowAlert(false);
     setDeleteId(null);
   };
+
+  if (loading) return <Loader />;
 
   return (
     <div>

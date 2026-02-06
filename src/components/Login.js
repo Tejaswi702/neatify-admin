@@ -1,23 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import logo from "../neatifylogo.png";
+import Loader from "./Loader";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const checkSession = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+      setLoading(false);
+    };
+    checkSession();
+  }, [navigate]);
+
   const handleLogin = async () => {
+    setLoading(true);
     setErrorMessage("");
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) setErrorMessage("Invalid email or password");
-    else navigate("/dashboard");
+    if (error) {
+      setErrorMessage("Invalid email or password");
+      setLoading(false);
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   //   const handleGoogleLogin = async () => {
@@ -26,6 +45,8 @@ function Login() {
   //     options: { redirectTo: window.location.origin + "/dashboard" },
   //   });
   // };
+
+  if (loading) return <Loader />;
 
   return (
     <div className="auth-page">
